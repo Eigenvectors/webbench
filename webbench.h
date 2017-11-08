@@ -10,6 +10,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <sys/param.h>
+#include <rpc/types.h>
+#include <getopt.h>
+#include <strings.h>
+#include <time.h>
+#include <signal.h>
+
 
 #define CERR(fmt, ...) \
 	fprintf(stderr, "[%s:%s:%d][error %d:%s]" fmt "\r\n", __FILE__, __func__, __LINE__, errno, strerror(errno), ##__VA_ARGS__)

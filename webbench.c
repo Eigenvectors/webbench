@@ -1,8 +1,4 @@
 /*
- * (C) Radim Kolar 1997-2004
- * This is free software, see GNU Public License version 2 for
- * details.
- *
  * Simple forking WWW Server benchmark:
  *
  * Usage:
@@ -11,46 +7,41 @@
  * Return codes:
  *    0 - sucess
  *    1 - benchmark failed (server is not on-line)
- *    2 - bad param
+ *    2 - bad parameters
  *    3 - internal error, fork failed
  * 
  */ 
-#include "socket.c"
-#include <unistd.h>
-#include <sys/param.h>
-#include <rpc/types.h>
-#include <getopt.h>
-#include <strings.h>
-#include <time.h>
-#include <signal.h>
+#include "webbench.h"
 
 /* values */
-volatile int timerexpired=0;
-int speed=0;
-int failed=0;
-int bytes=0;
+volatile int timerexpired = 0;
+int speed = 0;
+int failed = 0;
+int bytes = 0;
 /* globals */
-int http10=1; /* 0 - http/0.9, 1 - http/1.0, 2 - http/1.1 */
+int http10 = 1; /* 0 - http/0.9, 1 - http/1.0, 2 - http/1.1 */
 /* Allow: GET, HEAD, OPTIONS, TRACE */
 #define METHOD_GET 0
 #define METHOD_HEAD 1
 #define METHOD_OPTIONS 2
 #define METHOD_TRACE 3
 #define PROGRAM_VERSION "1.5"
-int method=METHOD_GET;
-int clients=1;
-int force=0;
-int force_reload=0;
-int proxyport=80;
-char *proxyhost=NULL;
-int benchtime=30;
+
+
+int method = METHOD_GET;
+int clients = 1;
+int force = 0;
+int force_reload = 0;
+int proxyport = 80;
+char *proxyhost = NULL;
+int benchtime = 30;
 /* internal */
 int mypipe[2];
-char host[MAXHOSTNAMELEN];
+char host[MAXHOSTNAMELEN];		//I don't define this macro????????????
 #define REQUEST_SIZE 2048
 char request[REQUEST_SIZE];
 
-static const struct option long_options[]=
+static const struct option long_options[] =	
 {
 	{"force", no_argument, &force, 1},
  	{"reload", no_argument, &force_reload, 1},
@@ -70,7 +61,7 @@ static const struct option long_options[]=
 };
 
 /* prototypes */
-static void benchcore(const char* host,const int port, const char *request);
+static void benchcore(const char* host, const int port, const char *request);
 static int bench(void);
 static void build_request(const char *url);
 
@@ -102,9 +93,9 @@ static void usage(void)
 
 int main(int argc, char *argv[])
 {
-	int opt=0;
- 	int options_index=0;
-    char *tmp=NULL;
+	int opt = 0;
+ 	int options_index = 0;
+    char *tmp = NULL;
 
 	if(argc == 1)
  	{
@@ -117,42 +108,42 @@ int main(int argc, char *argv[])
   		switch(opt)
   		{
    			case  0  : break;
-   			case 'f' : force=1;break;
-   			case 'r' : force_reload=1;break; 
-   			case '9' : http10=0;break;
-   			case '1' : http10=1;break;
-   			case '2' : http10=2;break;
+   			case 'f' : force = 1;break;
+   			case 'r' : force_reload = 1;break; 
+   			case '9' : http10 = 0;break;
+   			case '1' : http10 = 1;break;
+   			case '2' : http10 = 2;break;
    			case 'V' : printf(PROGRAM_VERSION"\n");exit(0);
-   			case 't' : benchtime=atoi(optarg);break;	     
+   			case 't' : benchtime = atoi(optarg);break;	     
    			case 'p' : 
 	     		/* proxy server parsing server:port */
-	     		tmp=strrchr(optarg,':');
-	     		proxyhost=optarg;
-	     		if(tmp==NULL)
+	     		tmp = strrchr(optarg,':');
+	     		proxyhost = optarg;
+	     		if(tmp == NULL)
 	     		{
 		     		break;
 	     		}
-	     		if(tmp==optarg)
+	     		if(tmp == optarg)
 	     		{
 		     		fprintf(stderr,"Error in option --proxy %s: Missing hostname.\n",optarg);
 		     		return 2;
 	     		}
-	     		if(tmp==optarg+strlen(optarg)-1)
+	     		if(tmp == optarg+strlen(optarg)-1)
 	     		{
 		     		fprintf(stderr,"Error in option --proxy %s Port number is missing.\n",optarg);
 		     		return 2;
 	     		}
-	     		*tmp='\0';
-	     		proxyport=atoi(tmp+1);
+	     		*tmp = '\0';
+	     		proxyport = atoi(tmp + 1);
 				break;
    			case ':':
    			case 'h':
    			case '?': usage();return 2;break;
-   			case 'c': clients=atoi(optarg);break;
+   			case 'c': clients = atoi(optarg);break;
   		}
 	 }
  
- 	if(optind==argc) 
+ 	if(optind == argc) 
 	{
     	fprintf(stderr,"webbench: Missing URL!\n");
 		usage();

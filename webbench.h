@@ -12,7 +12,7 @@
 #include <stdarg.h>
 #include <sys/param.h>
 #include <rpc/types.h>
-#include <getopt.h>
+#include <getopt.h>			//include getopt and getopt_long functions
 #include <strings.h>
 #include <time.h>
 #include <signal.h>
@@ -29,11 +29,11 @@
 		CERR_EXIT(#code)
 
 
-int Socket(const char *host, int port)
+int Socket(const char * host, int port)
 {
     int sockfd;
     in_addr_t inaddr;
-    struct sockaddr_in servaddr;
+    struct sockaddr_in servaddr;	//address structure
     struct hostent *hp;
     
     bzero(&servaddr, sizeof(servaddr));
@@ -41,7 +41,7 @@ int Socket(const char *host, int port)
 
     inaddr = inet_addr(host);	//the function convert ip address
     if (inaddr != INADDR_NONE)
-        memcpy(&servaddr.sin_addr, &inaddr, sizeof(inaddr));
+        memcpy(&servaddr.sin_addr, &inaddr, sizeof(inaddr));	//memory copy operation
     else
     {
         hp = gethostbyname(host);	//the function convert host name
@@ -52,11 +52,11 @@ int Socket(const char *host, int port)
     }
     servaddr.sin_port = htons(port);
     
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);	//create a socket reference by sockfd
     if (sockfd < 0)
         return sockfd;
 
-    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)	//need to convert into universal address structure
         return -1;
 
     return sockfd;

@@ -8,7 +8,7 @@
  *    0 - success
  *    1 - benchmark failed (server is not on-line)
  *    2 - bad parameters
- *    3 - internal error, fork failed
+ *    3 - internal error, fork failed and so on
  * 
  */ 
 
@@ -45,7 +45,7 @@ int mypipe[2];
 #define MAXHOSTNAMELEN 2048
 char host[MAXHOSTNAMELEN];		//I don't define this macro????????????
 #define REQUEST_SIZE 2048
-char request[REQUEST_SIZE];
+char request[REQUEST_SIZE];		//why request store too much information
 
 
 
@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
 	 "I just read the source code and do some little change. That's all.\n");
 
 
- 	build_request(argv[optind]);
+ 	build_request(argv[optind]);	//just initial a request and store relatived information into request array
 
  	/* print bench info */
  	printf("\nBenchmarking: ");
@@ -183,28 +183,29 @@ int main(int argc, char *argv[])
 	 {
 		 case METHOD_GET:
 		 default:
-			 printf("GET");break;
+			 printf("GET"); break;
 		 case METHOD_OPTIONS:
-			 printf("OPTIONS");break;
+			 printf("OPTIONS"); break;
 		 case METHOD_HEAD:
-			 printf("HEAD");break;
+			 printf("HEAD"); break;
 		 case METHOD_TRACE:
-			 printf("TRACE");break;
+			 printf("TRACE"); break;
  	}
- 	printf(" %s",argv[optind]);
+ 	printf(" %s", argv[optind]);	//if user don't input url, the sentence will output what
+
  	switch(http10)
 	{
-		case 0: printf(" (using HTTP/0.9)");break;
-	 	case 2: printf(" (using HTTP/1.1)");break;
+		case 0: printf(" (using HTTP/0.9)"); break;
+	 	case 2: printf(" (using HTTP/1.1)"); break;
 	}
 	printf("\n");
-	if(clients==1) printf("1 client");
-	else
-   		printf("%d clients",clients);
 
+	if(clients == 1) printf("1 client");
+	else
+   		printf("%d clients", clients);
  	printf(", running %d sec", benchtime);
 	if(force) printf(", early socket close");
-	if(proxyhost!=NULL) printf(", via proxy server %s:%d",proxyhost,proxyport);
+	if(proxyhost != NULL) printf(", via proxy server %s:%d", proxyhost, proxyport);
  	if(force_reload) printf(", forcing reload");
  	printf(".\n");
  	return bench();
@@ -233,7 +234,7 @@ static void build_request(const char *url)
 	  case METHOD_TRACE: strcpy(request, "TRACE"); break;
   }
 		  
-  strcat(request, " ");			//I need a reason
+  strcat(request, " ");			//use space as delimiter
 
   if(NULL == strstr(url, "://"))	//url don't include "://"
   {
@@ -256,49 +257,58 @@ static void build_request(const char *url)
   i = strstr(url, "://") - url + 3;		//I think i is 7
   /* printf("%d\n",i); */
 
-  if(strchr(url + i, '/') == NULL)
+	//can don't have port number, can't don't have hostname
+  if(strchr(url + i, '/') == NULL)	//ensure end character '/' exist
   {
   	   fprintf(stderr, "\nInvalid URL syntax - hostname don't ends with '/'.\n");	//the host name should ends with '/' character
        exit(2);
   }
+
+
   if(proxyhost == NULL)
   {
-   /* get port from hostname */
-   if(index(url + i, ':') != NULL && index(url + i, ':') < index(url + i, '/'))		//':' should before '/'
-   {
-	   strncpy(host, url + i, strchr(url + i, ':') - url - i);
-	   bzero(tmp, 10);
-	   strncpy(tmp, index(url + i, ':') + 1, strchr(url + i, '/') - index(url + i, ':') - 1);
-	   /* printf("tmp=%s\n",tmp); */
-	   proxyport = atoi(tmp);
-	   if(proxyport == 0) proxyport = 80;
-   } 
-   else
-   {
-     strncpy(host, url + i, strcspn(url + i, "/"));
-   }
-   // printf("Host=%s\n",host);
-   strcat(request + strlen(request), url + i + strcspn(url + i, "/"));
+  	 	/* get port from hostname */		//I need to know the formation of url
+       if(index(url + i, ':') != NULL && index(url + i, ':') < index(url + i, '/'))		//':' should before '/'
+   	   {
+	   		strncpy(host, url + i, strchr(url + i, ':') - url - i);	//get host name from url		this place have some problems????????
+	   		bzero(tmp, 10);
+	   		strncpy(tmp, index(url + i, ':') + 1, strchr(url + i, '/') - index(url + i, ':') - 1);	//get port number from url
+	   		/* printf("tmp=%s\n",tmp); */
+	   		proxyport = atoi(tmp);
+	   		if(proxyport == 0) proxyport = 80;	//if input ilegal, back to default value
+   		} 
+   		else
+   		{
+     		strncpy(host, url + i, strcspn(url + i, "/"));	//user don't supply port number, use defualt port number
+   		}
+   		// printf("Host=%s\n",host);
+   		strcat(request + strlen(request), url + i + strcspn(url + i, "/"));		//store hostname and port number into request array
   } 
   else
   {
-   // printf("ProxyHost=%s\nProxyPort=%d\n",proxyhost,proxyport);
-   strcat(request, url);
+   		// printf("ProxyHost=%s\nProxyPort=%d\n",proxyhost,proxyport);
+   		strcat(request, url);	//just add '\0'   I think this sentence is not necessary
   }
+
+
   if(http10 == 1)
 	  strcat(request, " HTTP/1.0");
   else if(http10 == 2)
 	  strcat(request, " HTTP/1.1");
   strcat(request, "\r\n");
+
+
   if(http10 > 0)
 	  strcat(request, "User-Agent: WebBench " PROGRAM_VERSION "\r\n");
-  if(proxyhost == NULL && http10 > 0)
+  if(proxyhost == NULL && http10 > 0)    //when user don't use proxy server, host only include hostname information
   {
 	  strcat(request, "Host: ");
 	  strcat(request, host);
 	  strcat(request, "\r\n");
   }
-  if(force_reload && proxyhost != NULL)
+
+
+  if(force_reload && proxyhost != NULL)   //use proxy server and force_reload work method
   {
 	  strcat(request, "Pragma: no-cache\r\n");
   }
@@ -306,167 +316,175 @@ static void build_request(const char *url)
 	  strcat(request, "Connection: close\r\n");
   /* add empty line at end */
   if(http10 > 0) strcat(request, "\r\n"); 
-  // printf("Req=%s\n",request);
+  // printf("Req = %s\n", request);
 }
 
 
 /* vraci system rc error kod */
 static int bench(void)
 {
-  int i,j,k;	
-  pid_t pid=0;
-  FILE *f;
+  	int i, j, k;	
+  	pid_t pid = 0;
+  	FILE *f;
 
-  /* check avaibility of target server */
-  i=Socket(proxyhost==NULL?host:proxyhost,proxyport);
-  if(i<0) { 
-	   fprintf(stderr,"\nConnect to server failed. Aborting benchmark.\n");
-           return 1;
-         }
-  close(i);
-  /* create pipe */
-  if(pipe(mypipe))
-  {
-	  perror("pipe failed.");
-	  return 3;
-  }
+  	/* check avaibility of target server */
+  	i = Socket(proxyhost == NULL ? host : proxyhost, proxyport);
+  	if(i < 0) 
+  	{	 
+	  	 fprintf(stderr, "\nConnect to server failed. Aborting benchmark.\n");
+       	 return 1;
+  	}
+  	close(i);
+  	/* create pipe */
+  	if(pipe(mypipe))
+  	{
+	  	perror("pipe failed.");
+	  	return 3;
+  	}
 
-  /* not needed, since we have alarm() in childrens */
-  /* wait 4 next system clock tick */
-  /*
-  cas=time(NULL);
-  while(time(NULL)==cas)
+  	/* not needed, since we have alarm() in childrens */
+  	/* wait 4 next system clock tick */
+  	/*
+  		cas=time(NULL);
+  		while(time(NULL)==cas)
         sched_yield();
-  */
+  	*/
 
-  /* fork childs */
-  for(i=0;i<clients;i++)
-  {
-	   pid=fork();
-	   if(pid <= (pid_t) 0)
-	   {
-		   /* child process or error*/
-	           sleep(1); /* make childs faster */
-		   break;
-	   }
-  }
+  	/* fork childs */
+  	for(i = 0; i < clients; i++)
+  	{
+	   	pid = fork();
+	   	if(pid <= (pid_t)0)
+	   	{
+		  	 /* child process or error*/
+	       	 sleep(1); /* make childs faster */
+		     break;
+	   	}
+  	}
 
-  if( pid< (pid_t) 0)
-  {
-          fprintf(stderr,"problems forking worker no. %d\n",i);
-	  perror("fork failed.");
-	  return 3;
-  }
+  	if(pid < (pid_t)0)
+  	{
+       	 fprintf(stderr, "problems forking worker no. %d\n", i);
+	   	 perror("fork failed.");
+	     return 3;
+  	}
 
-  if(pid== (pid_t) 0)
-  {
-    /* I am a child */
-    if(proxyhost==NULL)
-      benchcore(host,proxyport,request);
-         else
-      benchcore(proxyhost,proxyport,request);
+  	if(pid == (pid_t)0)
+  	{
+  	  	 /* I am a child */
+       	if(proxyhost == NULL)
+      	   	benchcore(host, proxyport, request);
+       	else
+      	   	benchcore(proxyhost, proxyport, request);
 
-         /* write results to pipe */
-	 f=fdopen(mypipe[1],"w");
-	 if(f==NULL)
-	 {
-		 perror("open pipe for writing failed.");
-		 return 3;
-	 }
-	 /* fprintf(stderr,"Child - %d %d\n",speed,failed); */
-	 fprintf(f,"%d %d %d\n",speed,failed,bytes);
-	 fclose(f);
-	 return 0;
-  } else
-  {
-	  f=fdopen(mypipe[0],"r");
-	  if(f==NULL) 
-	  {
-		  perror("open pipe for reading failed.");
-		  return 3;
-	  }
-	  setvbuf(f,NULL,_IONBF,0);
-	  speed=0;
-          failed=0;
-          bytes=0;
+        /* write results to pipe */
+	    f = fdopen(mypipe[1], "w");		//mypipe[0] be used to store read file descriptor, mypipe[1] be used to store write file descriptor
+	   	if(f == NULL)
+	   	{
+		   	perror("open pipe for writing failed.");
+		   	return 3;
+	   	} 
+	  	 /* fprintf(stderr, "Child - %d %d\n", speed, failed); */
+	   	fprintf(f, "%d %d %d\n", speed, failed, bytes);	//the child process write the data to a file pointer by f
+	   	fclose(f);
+	   	return 0;
+  	}	  
+  	else
+  	{	   	//parent process
+	   		f = fdopen(mypipe[0], "r");
+	   		if(f == NULL) 
+	   		{
+	 	   		perror("open pipe for reading failed.");
+		   		return 3;
+	   		}
+	   		setvbuf(f, NULL, _IONBF, 0);		//don't use buffer
+	   		speed = 0;
+       		failed = 0;
+       		bytes = 0;
+	   		i = 0;
+	   		j = 0;
+	  		k = 0;
 
-	  while(1)
-	  {
-		  pid=fscanf(f,"%d %d %d",&i,&j,&k);
-		  if(pid<2)
-                  {
-                       fprintf(stderr,"Some of our childrens died.\n");
-                       break;
-                  }
-		  speed+=i;
-		  failed+=j;
-		  bytes+=k;
-		  /* fprintf(stderr,"*Knock* %d %d read=%d\n",speed,failed,pid); */
-		  if(--clients==0) break;
-	  }
-	  fclose(f);
+	   		while(1)
+	   		{
+		   		pid = fscanf(f, "%d %d %d", &i, &j, &k);
+		   		if(pid < 2)
+           		{
+          	    	fprintf(stderr, "Some of our childrens died.\n");
+                	break;
+           		}
+		   		speed += i;
+		   		failed += j;
+		   		bytes += k;
+		   		/* fprintf(stderr, "*Knock* %d %d read=%d\n", speed, failed, pid); */
+		   		if(--clients == 0) break;
+	   		}
+	   		fclose(f);
 
-  printf("\nSpeed=%d pages/min, %d bytes/sec.\nRequests: %d susceed, %d failed.\n",
-		  (int)((speed+failed)/(benchtime/60.0f)),
-		  (int)(bytes/(float)benchtime),
-		  speed,
-		  failed);
-  }
-  return i;
+  	   		printf("\nSpeed=%d pages/min, %d bytes/sec.\nRequests: %d susceed, %d failed.\n",
+	   		(int)((speed + failed) / (benchtime / 60.0f)),
+	   		(int)(bytes / (float)benchtime),
+	   		speed,
+	   		failed);
+  	}
+  	return i;
 }
 
-static void benchcore(const char *host,const int port,const char *req)
+static void benchcore(const char *host, const int port, const char *req)
 {
- int rlen;
- char buf[1500];
- int s,i;
- struct sigaction sa;
+ 	int rlen;
+ 	char buf[1500];
+ 	int s, i;
+ 	struct sigaction sa;
 
- /* setup alarm signal handler */
- sa.sa_handler=alarm_handler;
- sa.sa_flags=0;
- if(sigaction(SIGALRM,&sa,NULL))
-    exit(3);
- alarm(benchtime);
+ 	/* setup alarm signal handler */
+ 	sa.sa_handler = alarm_handler;
+ 	sa.sa_flags = 0;
+ 	if(sigaction(SIGALRM, &sa, NULL))
+    	exit(3);
+ 	alarm(benchtime);
 
- rlen=strlen(req);
- nexttry:while(1)
- {
-    if(timerexpired)
-    {
-       if(failed>0)
-       {
-          /* fprintf(stderr,"Correcting failed by signal\n"); */
-          failed--;
-       }
-       return;
-    }
-    s=Socket(host,port);                          
-    if(s<0) { failed++;continue;} 
-    if(rlen!=write(s,req,rlen)) {failed++;close(s);continue;}
-    if(http10==0) 
-	    if(shutdown(s,1)) { failed++;close(s);continue;}
-    if(force==0) 
-    {
+	 rlen = strlen(req);
+ 	nexttry:while(1)		//I don't understand??????????????		
+ 	{
+    	if(timerexpired)
+    	{
+       		if(failed > 0)
+       		{
+          		/* fprintf(stderr,"Correcting failed by signal\n"); */
+          		failed--;
+       		}
+       		return;
+    	}
+    	s = Socket(host, port);                          
+    	if(s < 0){ failed++; continue;} 
+    	if(rlen != write(s, req, rlen)) {failed++; close(s); continue;}
+    	if(http10==0) 
+	    	if(shutdown(s, 1)) { failed++; close(s); continue;}
+    	if(force == 0) 	//need read data from connected socket
+    	{
             /* read all available data from socket */
-	    while(1)
-	    {
-              if(timerexpired) break; 
-	      i=read(s,buf,1500);
-              /* fprintf(stderr,"%d\n",i); */
-	      if(i<0) 
-              { 
-                 failed++;
-                 close(s);
-                 goto nexttry;
-              }
-	       else
-		       if(i==0) break;
-		       else
-			       bytes+=i;
-	    }
-    }
-    if(close(s)) {failed++;continue;}
-    speed++;
- }
+	    	while(1)
+	    	{
+            	if(timerexpired) break; 
+	      		i = read(s, buf, 1500);
+              	/* fprintf(stderr,"%d\n",i); */
+	        	if(i < 0) 
+            	{	 
+                 	failed++;
+                 	close(s);
+                 	goto nexttry;
+            	}
+	        	else
+				{
+		       		if(i == 0) 
+						break;
+		       		else
+			       		bytes+=i;
+				}	
+	    	}
+    	}
+    	if(close(s)) {failed++; continue;}
+    	speed++;
+ 	}
 }
